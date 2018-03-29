@@ -71,7 +71,6 @@ class AppFetcher extends Fetcher {
 		$response = parent::fetch($ETag, $content);
 
 		$ncVersion = $this->getVersion();
-		$ncMajorVersion = explode('.', $ncVersion)[0];
 		foreach($response['data'] as $dataKey => $app) {
 			$releases = [];
 
@@ -84,10 +83,10 @@ class AppFetcher extends Fetcher {
 					$versionParser = new VersionParser();
 					$version = $versionParser->getVersion($release['rawPlatformVersionSpec']);
 					if (
-						// Major version is bigger or equals to the minimum version of the app
-						version_compare($ncMajorVersion, $version->getMinimumVersion(), '>=')
-						// Major version is smaller or equals to the maximum version of the app
-						&& version_compare($ncMajorVersion, $version->getMaximumVersion(), '<=')
+						// Version is bigger or equals to the minimum version of the app
+						version_compare($ncVersion, $version->getMinimumVersion(), '>=')
+						// Version is smaller or equals to the maximum version of the app
+						&& version_compare($ncVersion, $version->getMaximumVersion(), '<=')
 					) {
 						$releases[] = $release;
 					}
