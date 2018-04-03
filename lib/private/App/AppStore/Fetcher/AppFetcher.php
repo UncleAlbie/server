@@ -27,6 +27,7 @@
 namespace OC\App\AppStore\Fetcher;
 
 use OC\App\AppStore\Version\VersionParser;
+use OC\App\CompareVersion;
 use OC\Files\AppData\Factory;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Http\Client\IClientService;
@@ -34,17 +35,23 @@ use OCP\IConfig;
 use OCP\ILogger;
 
 class AppFetcher extends Fetcher {
+
+	/** @var CompareVersion */
+	private $compareVersion;
+
 	/**
 	 * @param Factory $appDataFactory
 	 * @param IClientService $clientService
 	 * @param ITimeFactory $timeFactory
 	 * @param IConfig $config
+	 * @param CompareVersion $compareVersion
 	 * @param ILogger $logger
 	 */
 	public function __construct(Factory $appDataFactory,
 								IClientService $clientService,
 								ITimeFactory $timeFactory,
 								IConfig $config,
+								CompareVersion $compareVersion,
 								ILogger $logger) {
 		parent::__construct(
 			$appDataFactory,
@@ -56,6 +63,7 @@ class AppFetcher extends Fetcher {
 
 		$this->fileName = 'apps.json';
 		$this->setEndpoint();
+		$this->compareVersion = $compareVersion;
 	}
 
 	/**
@@ -70,7 +78,6 @@ class AppFetcher extends Fetcher {
 		/** @var mixed[] $response */
 		$response = parent::fetch($ETag, $content);
 
-		$ncVersion = $this->getVersion();
 		foreach($response['data'] as $dataKey => $app) {
 			$releases = [];
 
@@ -83,10 +90,8 @@ class AppFetcher extends Fetcher {
 					$versionParser = new VersionParser();
 					$version = $versionParser->getVersion($release['rawPlatformVersionSpec']);
 					if (
-						// Version is bigger or equals to the minimum version of the app
-						version_compare($ncVersion, $version->getMinimumVersion(), '>=')
-						// Version is smaller or equals to the maximum version of the app
-						&& version_compare($ncVersion, $version->getMaximumVersion(), '<=')
+						$this->compareVersion->isCompatible($this->getVersion(), $version->getMinimumVersion(), '>=') &&
+						$this->compareVersion->isCompatible($this->getVersion(), $version->getMaximumVersion(), '<=')
 					) {
 						$releases[] = $release;
 					}
